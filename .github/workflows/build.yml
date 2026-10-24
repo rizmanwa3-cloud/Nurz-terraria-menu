@@ -1,14 +1,22 @@
 name: Build APK
-
 on:
   push:
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Siapkan proyek
+        run: |
+          unzip -oq TerrariaMenu.zip || true
+          F=$(find . -name settings.gradle -not -path './.git/*' | head -n1)
+          if [ -z "$F" ]; then
+            echo "settings.gradle tidak ditemukan. Isi repo:"
+            find . -maxdepth 3 -not -path './.git/*'
+            exit 1
+          fi
+          echo "PROJECT_DIR=$(dirname "$F")" >> "$GITHUB_ENV"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -17,8 +25,9 @@ jobs:
         with:
           gradle-version: 8.7
       - name: Build debug APK
+        working-directory: ${{ env.PROJECT_DIR }}
         run: gradle assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: TerrariaMenu-debug
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
